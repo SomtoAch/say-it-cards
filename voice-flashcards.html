@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Say It Flashcards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Schibsted+Grotesk:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: friendly study tool, quick and encouraging
+   IDEA: a plain white card on a deep green desk mat
+   PICTURE: the card itself, large, with a mic ring that pulses while listening
+   COLOUR and TYPE: desk green, plain white card, coral accent; Inter on the card, Schibsted Grotesk for UI
+   LAYOUT: first screen is only the card + heard-text + controls; title and deck editor sit below the fold */
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+/* SCHEME: black / white / crimson */
+:root{color-scheme:dark;--bg:#0b0b0b;--mat:#1d1d1d;--card:#ffffff;--cardink:#111111;--ink:#f5f5f5;--muted:#a3a3a3;--acc:#dc143c;--miss-ink:#b0102f;--ok:#2fbf71;--focus:#ffffff}
+/* SCHEME (original): desk green / coral
+:root{color-scheme:light dark;--bg:light-dark(#0f3d34,#071c18);--mat:light-dark(#145045,#0b2a24);--card:#ffffff;--cardink:#1d2a2a;--ink:#eaf4f0;--muted:light-dark(#a9cfc4,#8fb3a9);--acc:#ff6b4a;--miss-ink:#c2401f;--ok:#3ddc97;--focus:#3ddc97} */
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Schibsted Grotesk",system-ui,sans-serif;overflow-x:clip}
+.band{padding:clamp(20px,4vw,48px) max(5vw,16px);max-width:1000px;margin:0 auto}
+h1{font-weight:800;font-size:clamp(30px,5vw,44px);line-height:1.05;margin:0 0 4px;text-wrap:balance}
+h2{font-size:22px;margin:0 0 10px}
+.sub{color:var(--muted);margin:0 0 22px}
+.play{min-height:100vh;min-height:100svh;display:flex;flex-direction:column;gap:14px;padding-block:clamp(14px,3vh,32px)}
+.stage{flex:1;display:flex;flex-direction:column;gap:14px}
+.stage .card{flex:1;display:flex;flex-direction:column;justify-content:center}
+.more{align-self:flex-start;margin-left:-12px;margin-top:14px;color:var(--muted);font-size:14px;text-decoration:none;padding:6px 12px;border-radius:999px}
+.more.up{display:block;width:fit-content;margin:0 -12px 14px auto}
+.more:hover{color:var(--ink)}.more:focus-visible{outline:3px solid var(--focus)}
+.setup-head{margin-bottom:18px}
+.card{position:relative;background:var(--card);color:var(--cardink);border-radius:10px;min-height:280px;padding:56px clamp(20px,5vw,48px) 36px;
+ box-shadow:0 2px 0 #0002,0 18px 40px -12px #0008;transition:transform .25s,box-shadow .25s}
+.card.ok{box-shadow:0 0 0 4px var(--ok),0 18px 40px -12px #0008}
+.card.miss{box-shadow:0 0 0 4px var(--acc),0 18px 40px -12px #0008}
+.card .meta{position:absolute;top:12px;left:clamp(20px,5vw,48px);right:16px;display:flex;justify-content:space-between;font-size:13px;color:#5b6b6b}
+.prompt{font-family:Inter,system-ui,sans-serif;font-weight:500;letter-spacing:-.02em;font-size:clamp(32px,6.5vw,52px);line-height:1.15;text-align:center;margin:20px 0 10px;overflow-wrap:anywhere}
+.answer{font-family:Inter,system-ui,sans-serif;font-weight:400;font-size:clamp(20px,3.5vw,26px);text-align:center;color:#0d7a55;min-height:1.4em}
+.card.miss .answer{color:var(--miss-ink)}
+.mic{position:absolute;right:16px;bottom:14px;width:46px;height:46px;border-radius:50%;background:#e8eeee;display:grid;place-items:center}
+.mic svg{width:22px;height:22px;fill:#5b6b6b}
+.live .mic{background:var(--acc)}.live .mic svg{fill:#fff}
+.live .mic::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:3px solid var(--acc);animation:pulse 1.4s ease-out infinite}
+@keyframes pulse{from{opacity:.9;transform:scale(.9)}to{opacity:0;transform:scale(1.35)}}
+@media (prefers-reduced-motion:reduce){.live .mic::after{animation:none;opacity:.6}.card{transition:none}}
+.heard{background:var(--mat);border-radius:10px;padding:12px 16px;min-height:52px;color:var(--muted)}
+.heard b{color:var(--ink);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button,select,input,textarea{font:inherit;font-size:16px}
+button{min-height:44px;padding:0 18px;border-radius:999px;border:0;background:var(--mat);color:var(--ink);font-weight:600;cursor:pointer}
+button.primary{background:var(--acc);color:#fff}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+input[type=text],select,textarea{background:var(--mat);color:var(--ink);border:1px solid #ffffff22;border-radius:8px;min-height:44px;padding:8px 12px}
+#typed{flex:1 1 200px}
+.stats{display:flex;gap:18px;flex-wrap:wrap;font-size:15px;color:var(--muted)}
+.stats strong{color:var(--ink);font-size:20px;margin-right:4px}
+.warn{background:color-mix(in srgb,var(--acc) 14%,transparent);border:1px solid var(--acc);border-radius:10px;padding:12px 16px;display:none}
+.edit{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:24px;margin-top:8px}
+textarea{width:100%;min-height:260px;font-family:ui-monospace,Menlo,monospace;font-size:15px;line-height:1.6;resize:vertical}
+label{display:block;font-size:14px;color:var(--muted);margin:12px 0 4px}
+.hint{font-size:14px;color:var(--muted)}
+.hint code{background:var(--mat);padding:1px 6px;border-radius:4px;color:var(--ink)}
+/* native radio look, on/off toggle behaviour (see script) */
+.opts{margin-top:12px}
+label.opt{display:flex;align-items:center;gap:8px;margin:0;min-height:44px;color:var(--ink);font-size:16px;cursor:pointer}
+.opt input{accent-color:var(--acc);width:18px;height:18px;margin:0;flex:none}
+.upload{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:999px;background:var(--acc);color:#fff;font-weight:600;cursor:pointer;margin:0;font-size:16px}
+#file:focus-visible+select,.upload:focus-within{outline:3px solid var(--focus)}
+textarea.drop{outline:3px dashed var(--acc);outline-offset:2px}
+#upStatus.ok{color:var(--ok)}#upStatus.bad{color:var(--acc)}
+@media(max-width:700px){.edit{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<main class="band play" id="study">
+  <div class="warn" id="warn"></div>
+
+  <section class="stage">
+    <div class="card" id="card">
+      <div class="meta"><span id="pos">Card 0 of 0</span><span id="deckname"></span></div>
+      <div class="prompt" id="prompt">Press Start</div>
+      <div class="answer" id="answer"></div>
+      <div class="mic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-2.1A7 7 0 0 0 19 12z"/></svg></div>
+    </div>
+    <div class="heard" id="heard" aria-live="polite">The words it hears will show up here. You can also say <b>“skip”</b> to see the answer, or <b>“repeat”</b> to hear the question again.</div>
+    <div class="row">
+      <button class="primary" id="startBtn">Start listening</button>
+      <button id="skipBtn">Skip</button>
+      <button id="restartBtn">Restart deck</button>
+      <input type="text" id="typed" placeholder="Or type the answer and press Enter" autocomplete="off">
+    </div>
+    <div class="stats"><span><strong id="sOk">0</strong>right</span><span><strong id="sMiss">0</strong>skipped</span><span><strong id="sLeft">0</strong>left</span></div>
+  </section>
+  <a class="more" href="#setup">Customise deck ↓</a>
+</main>
+
+<section class="band" id="setup">
+  <a class="more up" href="#study">Back to flashcards ↑</a>
+  <div class="setup-head">
+    <h1>Say it to flip it</h1>
+    <p class="sub">Say the answer out loud. Get it right and the next card appears.</p>
+  </div>
+  <h2>Your deck</h2>
+  <div class="edit">
+    <div>
+      <textarea id="deck" spellcheck="false" aria-label="Deck, one card per line"></textarea>
+      <div class="row" style="margin:10px 0 6px">
+        <label class="upload" for="file">Upload cards</label>
+        <input type="file" id="file" accept=".csv,.tsv,.txt,.json,text/plain,text/csv" hidden>
+        <select id="mode" aria-label="When uploading"><option value="replace">Replace the deck</option><option value="append">Add to the deck</option></select>
+        <button id="dlBtn" type="button">Download deck</button>
+      </div>
+      <p class="hint" id="upStatus">You can upload a CSV, TSV or text file, or drag one onto the box. Exports from Anki (Notes in Plain Text) and Quizlet work too.</p>
+      <p class="hint">Put one card on each line in the form <code>question | answer</code>. If more than one answer counts, separate them with <code>/</code>, for example <code>car | coche / carro</code>.</p>
+    </div>
+    <div>
+      <label for="preset">Sample decks</label>
+      <select id="preset"><option value="">Load a sample…</option><option value="capitals">Capital cities</option><option value="spanish">Spanish basics (answer in Spanish)</option><option value="science">Science terms</option></select>
+      <label for="dir">Which side you say</label>
+      <select id="dir">
+        <option value="normal">Say the answer (right side)</option>
+        <option value="flip">Say the question (left side)</option>
+        <option value="both">Both ways (each card twice)</option>
+      </select>
+      <label for="lang">Language you answer in</label>
+      <select id="lang">
+        <option value="en-GB">English (UK)</option><option value="en-US">English (US)</option><option value="es-ES">Spanish (Spain)</option><option value="es-MX">Spanish (Mexico)</option><option value="fr-FR">French</option><option value="de-DE">German</option><option value="it-IT">Italian</option><option value="pt-BR">Portuguese (Brazil)</option><option value="ja-JP">Japanese</option><option value="zh-CN">Chinese (Mandarin)</option>
+      </select>
+      <div class="opts">
+        <label class="opt"><input type="radio" id="shuffle"> Shuffle cards</label>
+        <label class="opt"><input type="radio" id="readAloud"> Read each question aloud</label>
+        <label class="opt"><input type="radio" id="requeue"> Repeat skipped cards at the end</label>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+{
+const $=id=>document.getElementById(id);
+const PRESETS={
+capitals:`France | Paris
+Japan | Tokyo
+Australia | Canberra
+Canada | Ottawa
+Egypt | Cairo
+Brazil | Brasília
+Kenya | Nairobi
+Norway | Oslo`,
+spanish:`dog | perro
+cat | gato
+house | casa
+car | coche / carro
+thank you | gracias
+good morning | buenos días
+water | agua
+book | libro`,
+science:`Powerhouse of the cell | mitochondria
+H2O is the formula for | water
+Unit of electrical resistance | ohm
+Closest planet to the Sun | Mercury
+Gas plants absorb | carbon dioxide
+Speed of light symbol | c`};
+const store={get(k,d){try{const v=localStorage.getItem('sayit:'+k);return v===null?d:JSON.parse(v)}catch{return d}},set(k,v){try{localStorage.setItem('sayit:'+k,JSON.stringify(v))}catch{}}};
+
+const deckEl=$('deck'),langEl=$('lang'),shuffleEl=$('shuffle'),readEl=$('readAloud'),requeueEl=$('requeue');
+const MATCH=0.75; // how similar a spoken answer must be to count (fixed for everyone)
+deckEl.value=store.get('deck',PRESETS.capitals);
+langEl.value=store.get('lang','en-GB');
+shuffleEl.checked=store.get('shuffle',false);
+readEl.checked=store.get('read',false);
+requeueEl.checked=store.get('requeue',true);
+// radios normally can't be unticked; let a click on a selected one switch it off
+[shuffleEl,readEl,requeueEl].forEach(r=>{
+  r.dataset.on=r.checked?'1':'';
+  r.addEventListener('click',()=>{
+    if(r.dataset.on){r.checked=false;r.dataset.on='';r.dispatchEvent(new Event('change'))}
+    else r.dataset.on='1';
+  });
+});
+$('dir').value=store.get('dir','normal');
+
+// ---------- matching ----------
+const NUM={zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20};
+const norm=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\p{L}\p{N}\s]/gu,' ').split(/\s+/).filter(Boolean).map(w=>w in NUM?String(NUM[w]):w);
+const lev=(a,b)=>{const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let p=Array.from({length:n+1},(_,i)=>i);for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]};
+const sim=(a,b)=>{if(a===b)return 1;const L=Math.max(a.length,b.length);return L?1-lev(a,b)/L:1};
+const CJK=/[぀-ヿ一-鿿가-힯]/;
+function score(heard,answer){
+  const h=norm(heard),a=norm(answer);if(!a.length||!h.length)return 0;
+  if(CJK.test(answer)){const hs=h.join(''),as=a.join('');return hs.includes(as)?1:sim(hs.slice(-as.length),as)}
+  const target=a.join(' ');let best=0;
+  for(let len=Math.max(1,a.length-1);len<=a.length+1;len++)
+    for(let i=0;i+len<=h.length;i++)best=Math.max(best,sim(h.slice(i,i+len).join(' '),target));
+  if(h.length<a.length)best=Math.max(best,sim(h.join(' '),target));
+  return best;
+}
+const answers=c=>c.a.split('/').map(s=>s.trim()).filter(Boolean);
+
+// ---------- deck & session ----------
+let queue=[],idx=0,ok=0,miss=0,total=0,busy=false;
+function parse(){
+  const cards=deckEl.value.split('\n').map(l=>l.split('|')).filter(p=>p.length>=2&&p[0].trim()&&p[1].trim()).map(p=>({q:p[0].trim(),a:p.slice(1).join('|').trim()}));
+  const flip=c=>({q:c.a,a:c.q});
+  const d=$('dir').value;
+  return d==='flip'?cards.map(flip):d==='both'?[...cards,...cards.map(flip)]:cards;
+}
+function restart(){
+  queue=parse();if(shuffleEl.checked)for(let i=queue.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[queue[i],queue[j]]=[queue[j],queue[i]]}
+  idx=0;ok=0;miss=0;total=queue.length;busy=false;render();
+}
+function render(){
+  const c=queue[idx],card=$('card');card.classList.remove('ok','miss');$('answer').textContent='';
+  $('sOk').textContent=ok;$('sMiss').textContent=miss;$('sLeft').textContent=Math.max(0,queue.length-idx);
+  if(!queue.length){$('prompt').textContent='Add some cards below';$('pos').textContent='';return}
+  if(!c){$('prompt').textContent=miss?`Done: ${ok} right, ${miss} skipped`:`All ${ok} right!`;$('pos').textContent='Deck finished';$('answer').textContent='Press Restart deck to go again';return}
+  $('prompt').textContent=c.q;$('pos').textContent=`Card ${Math.min(idx+1,queue.length)} of ${queue.length}`;
+  $('typed').value='';
+  if(readEl.checked&&listening)speak(c.q);
+}
+function advance(delay){busy=true;setTimeout(()=>{idx++;busy=false;ignoreFrom=resultsLen;render()},delay)}
+function correct(){if(busy||!queue[idx])return;ok++;$('card').classList.add('ok');$('answer').textContent='✓ '+answers(queue[idx])[0];beep(880);advance(700)}
+function skip(){if(busy||!queue[idx])return;const c=queue[idx];miss++;$('card').classList.add('miss');$('answer').textContent=answers(c).join(' / ');if(requeueEl.checked)queue.push(c);beep(300);advance(2200)}
+function check(text){
+  const c=queue[idx];if(!c||busy)return false;
+  const t=norm(text).join(' ');
+  if(/\b(skip|pass|i dont know|next)\b$/.test(t)&&!answers(c).some(a=>norm(a).join(' ')==='next')){skip();return true}
+  if(/\b(repeat|say again)\b$/.test(t)){speak(c.q);ignoreFrom=resultsLen;return true}
+  if(answers(c).some(a=>score(text,a)>=MATCH-1e-9)){correct();return true}
+  return false;
+}
+
+// ---------- audio ----------
+let actx;function beep(f){try{actx=actx||new AudioContext();const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=f;g.gain.setValueAtTime(.12,actx.currentTime);g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+.25);o.connect(g).connect(actx.destination);o.start();o.stop(actx.currentTime+.25)}catch{}}
+let speaking=false;
+// Fixed read-aloud voice for everyone: American female, normal speed.
+// Voices depend on the user's device, so try these in order and fall back to any US English voice.
+const VOICE_PREFS=['Microsoft Aria Online','Microsoft Jenny Online','Google US English','Samantha','Microsoft Zira'];
+const VOICE_RATE=1;
+if('speechSynthesis' in window)speechSynthesis.getVoices(); // Chrome loads voices lazily; start it early
+const pickVoice=()=>{
+  const vs=speechSynthesis.getVoices();
+  for(const p of VOICE_PREFS){const v=vs.find(v=>v.name.startsWith(p));if(v)return v}
+  return vs.find(v=>v.lang.replace('_','-')==='en-US')||null;
+};
+function speak(text){
+  if(!('speechSynthesis' in window))return;speechSynthesis.cancel();
+  // Chrome fills the voice list late; wait briefly for it so the fixed voice is used every time
+  if(!speechSynthesis.getVoices().length&&!speak._waited){
+    speak._waited=true;let done=false;
+    const go=()=>{if(done)return;done=true;speechSynthesis.removeEventListener('voiceschanged',go);speak(text)};
+    speechSynthesis.addEventListener('voiceschanged',go);setTimeout(go,1000);return;
+  }
+  const u=new SpeechSynthesisUtterance(text);
+  // Keep the fixed voice for anything in the Latin alphabet (accents, curly quotes, dashes included);
+  // only switch for other scripts (Japanese, Chinese, Cyrillic, Arabic...) that an English voice can't read
+  const otherScript=/[^\p{Script=Latin}\p{Script=Common}\p{Script=Inherited}]/u.test(text);
+  const lang=otherScript?langEl.value:'en-US';
+  const v=!otherScript&&pickVoice();
+  if(v){u.voice=v;u.lang=v.lang}else u.lang=lang;
+  u.rate=VOICE_RATE;
+  speaking=true;u.onend=u.onerror=()=>{speaking=false;ignoreFrom=resultsLen};speechSynthesis.speak(u);
+}
+
+// ---------- recognition ----------
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let rec=null,listening=false,ignoreFrom=0,resultsLen=0;
+function warn(msg){const w=$('warn');w.textContent=msg;w.style.display=msg?'block':'none'}
+if(!SR)warn('This browser does not support speech recognition. Open the file in Chrome or Edge on a computer, or Safari on a Mac or iPhone. You can still type your answers.');
+function startRec(){
+  rec=new SR();rec.lang=langEl.value;rec.continuous=true;rec.interimResults=true;rec.maxAlternatives=3;
+  ignoreFrom=0;resultsLen=0;
+  rec.onresult=e=>{
+    resultsLen=e.results.length;if(speaking)return;
+    const parts=[];for(let i=ignoreFrom;i<e.results.length;i++)parts.push(e.results[i]);
+    if(!parts.length)return;
+    const main=parts.map(r=>r[0].transcript).join(' ').trim();
+    const h=$('heard');h.textContent='Heard: ';const b=document.createElement('b');b.textContent=main;h.append(b);
+    // try every alternative of the latest result too
+    const last=parts[parts.length-1],before=parts.slice(0,-1).map(r=>r[0].transcript).join(' ');
+    for(let k=0;k<last.length;k++)if(check((before+' '+last[k].transcript).trim()))return;
+    // stop a long run-on from piling up: after a final result that didn't match, start fresh
+    if(last.isFinal&&parts.length>2)ignoreFrom=e.results.length;
+  };
+  rec.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed'){warn('Microphone access was blocked. Allow the microphone for this page in your browser\'s address bar, then press Start again.');stop()}else if(e.error==='network')warn('Speech recognition needs an internet connection in this browser.');else if(e.error==='audio-capture'){warn('No microphone could be used. Check it is plugged in and not in use by another app.');stop()}};
+  rec.onstart=()=>{if(!$('warn').textContent.startsWith('Opened'))warn('');$('heard').textContent='Listening… say the answer.'};
+  rec.onend=()=>{if(listening)try{startRec()}catch{}};
+  try{rec.start()}catch{}
+}
+async function start(){
+  if(!SR)return;
+  if(window.top!==window){warn('This page is running inside a preview, which blocks the microphone. Download the file and open it in its own Chrome tab (see the tips in the chat).');return}
+  if(location.protocol==='file:')warn('Opened from your disk (file://). If Chrome doesn\'t ask for the microphone, serve it from localhost or an https site instead — see the tips in the chat.');
+  else warn('');
+  if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
+    try{const s=await navigator.mediaDevices.getUserMedia({audio:true});s.getTracks().forEach(t=>t.stop())}
+    catch(err){warn(err.name==='NotAllowedError'?'Microphone permission was denied. Click the icon at the left of the address bar, set Microphone to Allow, then reload.':err.name==='NotFoundError'?'No microphone was found. Plug one in or check your system sound settings.':'Could not open the microphone ('+err.name+'). On file:// pages, try serving from localhost or https.');return}
+  }else if(!window.isSecureContext){warn('The browser hides the microphone on this page because it isn\'t secure. Open it from localhost or an https address.');return}
+  listening=true;document.body.classList.add('live');$('card').parentElement.classList.add('live');$('startBtn').textContent='Stop listening';startRec();if(readEl.checked&&queue[idx])speak(queue[idx].q)}
+function stop(){listening=false;$('card').parentElement.classList.remove('live');$('startBtn').textContent='Start listening';try{rec&&rec.abort()}catch{}}
+
+// ---------- upload ----------
+const clean=s=>String(s??'').replace(/<br\s*\/?>/gi,' ').replace(/<[^>]*>/g,'').replace(/\[sound:[^\]]*\]/g,'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/\s+/g,' ').trim();
+function csvRows(text,sep){ // handles quoted fields with commas/newlines
+  const rows=[];let row=[],f='',q=false;
+  for(let i=0;i<text.length;i++){const ch=text[i];
+    if(q){if(ch==='"'){if(text[i+1]==='"'){f+='"';i++}else q=false}else f+=ch}
+    else if(ch==='"'&&f==='')q=true;
+    else if(ch===sep){row.push(f);f=''}
+    else if(ch==='\n'){row.push(f);rows.push(row);row=[];f=''}
+    else if(ch!=='\r')f+=ch}
+  if(f||row.length){row.push(f);rows.push(row)}
+  return rows;
+}
+function parseFile(name,text){
+  text=text.replace(/^﻿/,'');
+  if(/\.json$/i.test(name)||/^\s*[\[{]/.test(text)){
+    let d=JSON.parse(text);if(!Array.isArray(d))d=d.cards||d.deck||Object.entries(d).map(([q,a])=>({q,a}));
+    return d.map(c=>Array.isArray(c)?[c[0],c[1]]:[c.q??c.question??c.front??c.term,c.a??c.answer??c.back??c.definition]);
+  }
+  const lines=text.split(/\r?\n/).filter(l=>l.trim()&&!l.startsWith('#'));
+  const has=ch=>lines.filter(l=>l.includes(ch)).length>=lines.length*0.6;
+  let rows;
+  if(has('|'))rows=lines.map(l=>{const i=l.indexOf('|');return[l.slice(0,i),l.slice(i+1)]});
+  else if(has('\t'))rows=csvRows(text.split(/\r?\n/).filter(l=>!l.startsWith('#')).join('\n'),'\t');
+  else if(has(';')&&!has(','))rows=csvRows(text,';');
+  else if(has(','))rows=csvRows(text,',');
+  else if(has(' - '))rows=lines.map(l=>{const i=l.indexOf(' - ');return[l.slice(0,i),l.slice(i+3)]});
+  else if(has(':'))rows=lines.map(l=>{const i=l.indexOf(':');return[l.slice(0,i),l.slice(i+1)]});
+  else throw new Error('Couldn\'t tell how questions and answers are separated. Put each card on its own line with a comma, tab or | between the question and the answer.');
+  if(rows.length&&/^(front|question|term|word|prompt|q)$/i.test(clean(rows[0][0]))&&/^(back|answer|definition|meaning|translation|a)$/i.test(clean(rows[0][1]||'')))rows.shift();
+  return rows;
+}
+function importText(name,text){
+  const st=$('upStatus');
+  try{
+    const cards=parseFile(name,text).map(([q,a])=>[clean(q).replace(/\|/g,'/'),clean(a)]).filter(([q,a])=>q&&a);
+    if(!cards.length)throw new Error('No cards found. Each card needs a question and an answer.');
+    const lines=cards.map(([q,a])=>q+' | '+a).join('\n');
+    deckEl.value=$('mode').value==='append'&&deckEl.value.trim()?deckEl.value.replace(/\s*$/,'\n')+lines:lines;
+    store.set('deck',deckEl.value);restart();
+    st.className='hint ok';st.textContent=`Loaded ${cards.length} card${cards.length>1?'s':''} from ${name}${$('mode').value==='append'?' (added to the deck)':''}.`;
+  }catch(err){st.className='hint bad';st.textContent=(err instanceof SyntaxError?'That JSON file couldn\'t be read. ':'')+err.message}
+}
+function readFile(f){
+  if(!f)return;
+  if(/\.(apkg|colpkg)$/i.test(f.name)){const st=$('upStatus');st.className='hint bad';st.textContent='Anki .apkg packages can\'t be read here. In Anki, go to File → Export and choose “Notes in Plain Text” instead.';return}
+  const r=new FileReader();r.onload=()=>importText(f.name,r.result);r.readAsText(f);
+}
+$('file').onchange=e=>{readFile(e.target.files[0]);e.target.value=''};
+deckEl.addEventListener('dragover',e=>{e.preventDefault();deckEl.classList.add('drop')});
+deckEl.addEventListener('dragleave',()=>deckEl.classList.remove('drop'));
+deckEl.addEventListener('drop',e=>{e.preventDefault();deckEl.classList.remove('drop');readFile(e.dataTransfer.files[0])});
+$('dlBtn').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([deckEl.value],{type:'text/plain'}));a.download='my-deck.txt';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+
+// ---------- events ----------
+$('startBtn').onclick=()=>listening?stop():start();
+$('skipBtn').onclick=skip;
+$('restartBtn').onclick=restart;
+$('typed').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();if(!check(e.target.value)){$('card').animate([{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'none'}],{duration:200})}}});
+deckEl.addEventListener('input',()=>{store.set('deck',deckEl.value);clearTimeout(deckEl._t);deckEl._t=setTimeout(restart,600)});
+$('preset').onchange=e=>{if(!e.target.value)return;deckEl.value=PRESETS[e.target.value];if(e.target.value==='spanish'){langEl.value='es-ES';langEl.onchange()}store.set('deck',deckEl.value);e.target.value='';restart()};
+langEl.onchange=()=>{store.set('lang',langEl.value);if(listening){stop();start()}};
+$('dir').onchange=()=>{store.set('dir',$('dir').value);restart()};
+shuffleEl.onchange=()=>{store.set('shuffle',shuffleEl.checked);restart()};
+readEl.onchange=()=>store.set('read',readEl.checked);
+requeueEl.onchange=()=>store.set('requeue',requeueEl.checked);
+document.addEventListener('keydown',e=>{if(e.target.matches('input,textarea,select'))return;if(e.code==='Space'){e.preventDefault();listening?stop():start()}if(e.key==='ArrowRight')skip()});
+restart();
+}
+</script>
+</body>
+</html>

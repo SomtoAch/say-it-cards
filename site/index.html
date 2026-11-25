@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Backup policy in case the _headers file is ever missing. The full policy (incl. frame-ancestors) is sent as an HTTP header. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://cloudflareinsights.com; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Say It Flashcards</title>
+<meta name="description" content="Voice flashcards: say the answer out loud and the next card appears.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<script src="app.js" defer></script>
+</head>
+<body>
+<main class="band play" id="study">
+  <div class="warn" id="warn" role="alert" hidden></div>
+
+  <section class="stage">
+    <div class="card" id="card">
+      <div class="meta"><span id="pos">Card 0 of 0</span><span id="deckname"></span></div>
+      <div class="prompt" id="prompt">Press Start</div>
+      <div class="answer" id="answer"></div>
+      <div class="mic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-2.1A7 7 0 0 0 19 12z"/></svg></div>
+    </div>
+    <div class="heard" id="heard" aria-live="polite">The words it hears will show up here. You can also say <b>“skip”</b> to see the answer, or <b>“repeat”</b> to hear the question again.</div>
+    <div class="row">
+      <button class="primary" id="startBtn" type="button">Start listening</button>
+      <button id="skipBtn" type="button">Skip</button>
+      <button id="restartBtn" type="button">Restart deck</button>
+      <input type="text" id="typed" placeholder="Or type the answer and press Enter" autocomplete="off" aria-label="Type the answer">
+    </div>
+    <div class="stats"><span><strong id="sOk">0</strong>right</span><span><strong id="sMiss">0</strong>skipped</span><span><strong id="sLeft">0</strong>left</span></div>
+  </section>
+  <a class="more" href="#setup">Customise deck ↓</a>
+</main>
+
+<section class="band" id="setup">
+  <a class="more up" href="#study">Back to flashcards ↑</a>
+  <div class="setup-head">
+    <h1>Say it to flip it</h1>
+    <p class="sub">Say the answer out loud. Get it right and the next card appears.</p>
+  </div>
+  <h2>Your deck</h2>
+  <div class="edit">
+    <div>
+      <textarea id="deck" spellcheck="false" aria-label="Deck, one card per line"></textarea>
+      <div class="row upload-row">
+        <label class="upload" for="file">Upload cards</label>
+        <input type="file" id="file" accept=".csv,.tsv,.txt,.json,text/plain,text/csv" hidden>
+        <select id="mode" aria-label="When uploading"><option value="replace">Replace the deck</option><option value="append">Add to the deck</option></select>
+        <button id="dlBtn" type="button">Download deck</button>
+      </div>
+      <p class="hint" id="upStatus">You can upload a CSV, TSV or text file (up to 2 MB), or drag one onto the box. Exports from Anki (Notes in Plain Text) and Quizlet work too.</p>
+      <p class="hint">Put one card on each line in the form <code>question | answer</code>. If more than one answer counts, separate them with <code>/</code>, for example <code>car | coche / carro</code>.</p>
+    </div>
+    <div>
+      <label for="preset">Sample decks</label>
+      <select id="preset"><option value="">Load a sample…</option><option value="capitals">Capital cities</option><option value="spanish">Spanish basics (answer in Spanish)</option><option value="science">Science terms</option></select>
+      <label for="dir">Which side you say</label>
+      <select id="dir">
+        <option value="normal">Say the answer (right side)</option>
+        <option value="flip">Say the question (left side)</option>
+        <option value="both">Both ways (each card twice)</option>
+      </select>
+      <label for="lang">Language you answer in</label>
+      <select id="lang">
+        <option value="en-GB">English (UK)</option><option value="en-US">English (US)</option><option value="es-ES">Spanish (Spain)</option><option value="es-MX">Spanish (Mexico)</option><option value="fr-FR">French</option><option value="de-DE">German</option><option value="it-IT">Italian</option><option value="pt-BR">Portuguese (Brazil)</option><option value="ja-JP">Japanese</option><option value="zh-CN">Chinese (Mandarin)</option>
+      </select>
+      <div class="opts">
+        <label class="opt"><input type="radio" id="shuffle"> Shuffle cards</label>
+        <label class="opt"><input type="radio" id="readAloud"> Read each question aloud</label>
+        <label class="opt"><input type="radio" id="requeue"> Repeat skipped cards at the end</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="privacy">
+    <h2>Privacy</h2>
+    <p class="hint">Your decks and settings are saved only in this browser, on this device. This site has no accounts and never receives your cards, your answers or your voice. It counts visits anonymously with Cloudflare Web Analytics, which uses no cookies and doesn’t track you across sites.</p>
+    <p class="hint">Turning your voice into text is done by your browser’s own speech service. Chrome and Edge send the audio to Google or Microsoft to do this; Safari may do it on your device. If you’d rather not use the microphone, you can type your answers instead.</p>
+  </div>
+</section>
+</body>
+</html>
